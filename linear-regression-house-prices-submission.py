@@ -11,10 +11,12 @@ from sklearn.model_selection import cross_val_score
 # import data
 train = pd.read_csv('train.csv')
 test = pd.read_csv('test.csv')
+templis = test
 
 # divide data into predictor and target variables
-train_X = train.drop([
-'SalePrice', 
+train_X = train.drop(
+'SalePrice',axis=1)
+test_X = test.drop([
 'LotFrontage',
 'Street',
 'Alley',
@@ -49,7 +51,7 @@ train_X = train.drop([
 'SaleCondition'
 ], axis=1)
 train_y = train.SalePrice
-test_X = test
+#test_X = templis
 
 # one-hot encoding categorical variables for analysis
 onehot_train_X = pd.get_dummies(train_X)
