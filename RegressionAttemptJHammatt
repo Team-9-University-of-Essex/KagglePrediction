@@ -1,0 +1,273 @@
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+from scipy import stats
+from scipy.stats import skew
+from scipy.stats.stats import pearsonr
+import matplotlib
+import warnings
+warnings.filterwarnings('ignore')
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+        
+%matplotlib inline
+# Any results you write to the current directory are saved as output.
+
+sample_submission = pd.read_csv("../input/house-prices-advanced-regression-techniques/sample_submission.csv", index_col=0)
+test = pd.read_csv("../input/house-prices-advanced-regression-techniques/test.csv")
+train = pd.read_csv("../input/house-prices-advanced-regression-techniques/train.csv")
+
+SP = train['SalePrice']
+SP.head
+train.head(5)
+
+train['SalePrice'].describe()
+
+Train_ID = train['Id']
+Test_ID = test['Id']
+train.drop("Id", axis = 1, inplace = True)
+test.drop("Id", axis = 1, inplace = True)
+
+train.drop("Id", axis = 1, inplace = True)
+test.drop("Id", axis = 1, inplace = True)
+
+test.head()
+
+test.shape
+
+test.shape[0] / train.shape[0]
+
+
+#scatter plot grlivarea/saleprice
+var = 'GrLivArea'
+data = pd.concat([train['SalePrice'], train[var]], axis=1)
+data.plot.scatter(x=var, y='SalePrice', ylim=(0,800000));
+
+#scatter plot totalbsmtsf/saleprice
+var = 'TotalBsmtSF'
+data = pd.concat([train['SalePrice'], train[var]], axis=1)
+data.plot.scatter(x=var, y='SalePrice', ylim=(0,800000));
+
+#box plot overallqual/saleprice
+var = 'OverallQual'
+data = pd.concat([train['SalePrice'], train[var]], axis=1)
+f, ax = plt.subplots(figsize=(8, 6))
+fig = sns.boxplot(x=var, y="SalePrice", data=data)
+fig.axis(ymin=0, ymax=800000);
+
+#Boxplot of Saleprice/YearBuilt
+var = 'YearBuilt'
+data = pd.concat([train['SalePrice'], train[var]], axis=1)
+f, ax = plt.subplots(figsize=(16, 8))
+fig = sns.boxplot(x=var, y="SalePrice", data=data)
+fig.axis(ymin=0, ymax=800000);
+plt.xticks(rotation=90);
+
+#Scatter Diagram of GrLivArea
+var = 'GrLivArea'
+data = pd.concat([train['SalePrice'], train[var]], axis=1)
+data.plot.scatter(x=var, y='SalePrice', ylim=(0,800000));
+
+train = train.drop(train[(train['GrLivArea']>3800) & (train['SalePrice']<350000)].index)
+
+var = 'GrLivArea'
+data = pd.concat([train['SalePrice'], train[var]], axis=1)
+data.plot.scatter(x=var, y='SalePrice', ylim=(0,800000));
+
+plt.figure(figsize=(15,3))
+sns.distplot(train['SalePrice'], color = 'green');
+plt.title("Distribution density of training data")
+fig = plt.figure()
+res = stats.probplot(train['SalePrice'], plot=plt)
+
+#Converting Saleprice to logarithm
+train['SPLOG'] = np.log(train['SalePrice'])
+
+plt.figure(figsize=(10,3))
+sns.distplot(train['SPLOG'], color = 'green');
+plt.title("Distribution density of training data")
+fig = plt.figure()
+res = stats.probplot(train['SPLOG'], plot=plt)
+
+#Finding Correlation
+matrix = train.corr()
+f, ax = plt.subplots(figsize=(12, 9))
+sns.heatmap(matrix, vmax=.8, square=True);
+
+sns.set()
+cols = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'TotalBsmtSF', 'FullBath', 'YearBuilt']
+sns.pairplot(train[cols], size = 2.5)
+plt.show();
+
+
+trainNew = train.shape[0]
+testNew = test.shape[0]
+trainY = train.SalePrice.values
+Concat_data = pd.concat([train, test], axis=0, sort=False)
+y = Concat_data['SalePrice'].dropna()
+y_log = Concat_data['SPLOG'].dropna()
+Concat_data.drop(['SalePrice', 'SPLOG'], axis=1, inplace=True)
+
+#missing data
+Total = train.isnull().sum().sort_values(ascending=False)
+percent = (train.isnull().sum()/train.isnull().count()).sort_values(ascending=False)
+missing_data = pd.concat([Total, percent], axis=1, keys=['Total', 'Percent'])
+missing_data.head(20)
+
+Concat_data = Concat_data.drop(['Utilities', 'PoolQC', 'MiscFeature'], axis = 1)
+
+Concat_data["Alley"] = Concat_data["Alley"].fillna("None")
+Concat_data["Fence"] = Concat_data["Fence"].fillna("None")
+Concat_data["FireplaceQu"] = Concat_data["FireplaceQu"].fillna("None")
+Concat_data["LotFrontage"] = Concat_data.groupby("Neighborhood")["LotFrontage"].transform(lambda x: x.fillna(x.median()))
+Concat_data["GarageType"] = Concat_data["GarageType"].fillna("None")
+Concat_data["GarageFinish"] = Concat_data["GarageFinish"].fillna("None")
+Concat_data["GarageQual"] = Concat_data["GarageQual"].fillna("None")
+Concat_data["GarageCond"] = Concat_data["GarageCond"].fillna("None")
+Concat_data["GarageYrBlt"] = Concat_data["GarageYrBlt"].fillna(0)
+Concat_data["GarageArea"] = Concat_data["GarageArea"].fillna(0)
+Concat_data["GarageCars"] = Concat_data["GarageCars"].fillna(0)
+Concat_data["BsmtFinSF1"] = Concat_data["BsmtFinSF1"].fillna(0)
+Concat_data["BsmtFinSF2"] = Concat_data["BsmtFinSF2"].fillna(0)
+Concat_data["BsmtUnfSF"] = Concat_data["BsmtUnfSF"].fillna(0)
+Concat_data["TotalBsmtSF"] = Concat_data["TotalBsmtSF"].fillna(0)
+Concat_data["BsmtFullBath"] = Concat_data["BsmtFullBath"].fillna(0)
+Concat_data["BsmtHalfBath"] = Concat_data["BsmtHalfBath"].fillna(0)
+Concat_data["BsmtQual"] = Concat_data["BsmtQual"].fillna("None")
+Concat_data["BsmtCond"] = Concat_data["BsmtCond"].fillna("None")
+Concat_data["BsmtExposure"] = Concat_data["BsmtExposure"].fillna("None")
+Concat_data["BsmtFinType1"] = Concat_data["BsmtFinType1"].fillna("None")
+Concat_data["BsmtFinType2"] = Concat_data["BsmtFinType2"].fillna("None")
+Concat_data["MasVnrType"] = Concat_data["MasVnrType"].fillna("None")
+Concat_data["MasVnrArea"] = Concat_data["MasVnrArea"].fillna(0)
+Concat_data["MSZoning"] = Concat_data["MSZoning"].fillna(Concat_data['MSZoning'].mode()[0])
+Concat_data["Functional"] = Concat_data["Functional"].fillna("Typ")
+Concat_data["KitchenQual"] = Concat_data["KitchenQual"].fillna(Concat_data['KitchenQual'].mode()[0])
+Concat_data["Electrical"] = Concat_data["Electrical"].fillna(Concat_data['Electrical'].mode()[0])
+Concat_data["Exterior1st"] = Concat_data["Exterior1st"].fillna(Concat_data['Exterior1st'].mode()[0])
+Concat_data["Exterior2nd"] = Concat_data["Exterior2nd"].fillna(Concat_data['Exterior2nd'].mode()[0])
+Concat_data["SaleType"] = Concat_data["SaleType"].fillna(Concat_data['SaleType'].mode()[0])
+Concat_data["MSSubClass"] = Concat_data["MSSubClass"].fillna("None")
+
+Concat_data.shape
+
+Concat_data_na = (Concat_data.isnull().sum() / len(Concat_data)) * 100
+Concat_data_na = Concat_data_na.drop(Concat_data_na[Concat_data_na == 0].index).sort_values(ascending=False)
+missing_data = pd.DataFrame({'Missing Ratio' :Concat_data_na})
+missing_data.head()
+#Using the missing data grid once again to test if any gaps still exist
+
+Concat_data['MSSubClass'] = Concat_data['MSSubClass'].apply(str)
+Concat_data['OverallCond'] = Concat_data['OverallCond'].astype(str)
+Concat_data['YrSold'] = Concat_data['YrSold'].astype(str)
+Concat_data['MoSold'] = Concat_data['MoSold'].astype(str)
+
+from sklearn.preprocessing import LabelEncoder  #source: https://www.kaggle.com/serigne/stacked-regressions-top-4-on-leaderboard
+
+cols = ('FireplaceQu', 'BsmtQual', 'BsmtCond', 'GarageQual', 'GarageCond', 
+        'ExterQual', 'ExterCond','HeatingQC', 'KitchenQual', 'BsmtFinType1', 
+        'BsmtFinType2', 'Functional', 'Fence', 'BsmtExposure', 'GarageFinish', 'LandSlope',
+        'LotShape', 'PavedDrive', 'Street', 'Alley', 'CentralAir', 'MSSubClass', 'OverallCond', 
+        'YrSold', 'MoSold')
+# process columns, apply LabelEncoder to categorical features
+for c in cols:
+    lbl = LabelEncoder() 
+    lbl.fit(list(Concat_data[c].values)) 
+    Concat_data[c] = lbl.transform(list(Concat_data[c].values))
+
+Concat_data.shape
+
+def Check_data_types():
+    print(numeric_data.shape[1])
+    print(categorical_data.shape[1])
+Check_data_types()
+
+numeric_data.columns
+categorical_data.columns
+Check_data_types()
+
+f = pd.melt(Concat_data, value_vars=sorted(categorical_data))
+g = sns.FacetGrid(f, col='variable', col_wrap=4, sharex=False, sharey=False)
+plt.xticks(rotation='vertical')
+g = g.map(sns.countplot, 'value')
+[plt.setp(ax.get_xticklabels(), rotation=60) for ax in g.axes.flat]
+g.fig.tight_layout()
+plt.show()
+
+Concat_data = pd.get_dummies(Concat_data)
+print(Concat_data.shape)
+
+X = Concat_data[:trainNew]
+test2 = Concat_data[trainNew:]
+
+
+#Model Packages
+from sklearn.linear_model import Ridge, RidgeCV, ElasticNet, Lasso,  BayesianRidge, LassoLarsIC
+from sklearn.ensemble import RandomForestRegressor,  GradientBoostingRegressor
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import RobustScaler
+from sklearn.base import BaseEstimator, TransformerMixin, RegressorMixin, clone
+from sklearn.model_selection import KFold, cross_val_score, train_test_split, GridSearchCV
+from sklearn.metrics import mean_squared_error
+from mlxtend.regressor import StackingCVRegressor
+import xgboost as xgb
+import lightgbm as lgb
+from sklearn.metrics import roc_auc_score
+from bayes_opt import BayesianOptimization
+
+def rmse_cv(model):
+    rmse= np.sqrt(-cross_val_score(model, train.values, trainY, scoring="neg_mean_squared_error", cv = 5))
+    return(rmse)
+    
+lasso = Lasso()
+lasso_MOD = GridSearchCV(lasso, {'alpha': np.logspace(-4, -3, 5)}, cv=5, scoring="neg_mean_squared_error")
+lasso_MOD.fit(X, trainY)
+lasso_MOD.best_estimator_
+
+Lasso_MOD = make_pipeline(RobustScaler(), Lasso(alpha=0.0005, random_state=1))
+score = rmse_cv(Lasso_MOD)
+
+ridge = Ridge()
+Ridge_par = GridSearchCV(ridge, {'alpha': np.linspace(10, 30, 10)}, cv=5, scoring="neg_mean_squared_error")
+Ridge_par.fit(X, trainY)
+Ridge_par.best_estimator_
+
+RidgeMOD = make_pipeline(RobustScaler(), Ridge(alpha=12))
+rmse_cv(RidgeMOD)
+
+GradBoostMOD = GradientBoostingRegressor(n_estimators=3000, 
+                                  learning_rate=0.05, 
+                                  max_depth=4, 
+                                  max_features='sqrt',
+                                  min_samples_leaf=15, 
+                                  min_samples_split=10, 
+                                  loss='huber')
+rmse_cv(GradBoostMOD)
+
+Stacked = StackingCVRegressor([LassoMOD, RidgeMOD], meta_regressor = GradBoostMOD)
+
+#LassoMOD = LassoMOD.fit(X, y)
+#GradBoostMOD = GradBoostMOD.fit(X, y)
+#RidgeMOD = RidgeMOD.fit(X, y)
+
+#predictions = LassoMOD.predict(X_test)
+
+submissions=pd.DataFrame({"Id": list(range(len(predictions)+2,len(predictions)+len(predictions)+2)), "SalePrice": predictions})
+submissions.to_csv("Subfile.csv", index=False, header=True)
+
+#result = ((0.4*Stacked.predict(test)) + (0.2*LassoMOD.predict(test)) + (0.1*RidgeMOD.predict(test)) + (0.3*GradBoostMOD.predict(test)))
+
+#submissions = pd.DataFrame(result)
+#submissions['Id'] = house_test['Id']
+#submissions['SalePrice'] = result
+
+#submissions.to_csv('Submission_file.csv',index=False)
